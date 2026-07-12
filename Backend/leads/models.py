@@ -9,6 +9,6 @@ class Lead(models.Model):
     source = models.CharField(max_length=50, default="website")  # website/whatsapp/instagram
     status = models.CharField(max_length=20, default="new")  # new/contacted/follow-up
     created_at = models.DateTimeField(auto_now_add=True)
-    last_contacted = models.DateTimeField(blank=True, null=True)from django.db import models
+    last_contacted = models.DateTimeField(blank=True, null=True)
 
-# Create your models here.
+

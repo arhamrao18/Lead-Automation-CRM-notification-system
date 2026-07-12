@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Send, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
-const API_URL = "http://127.0.0.1:8000/api/leads/create/"; // <-- apna Django endpoint yahan daalo
+// call webhook url from .env file
+
+
+const API_URL = "http://localhost:5678/webhook-test/8b1f5915-8c3e-4e47-aa3c-3a0fdfabf681";
 
 export default function ContactPage() {
   // Ye fields exactly Lead model se match karte hain: name, phone, email, message, source
