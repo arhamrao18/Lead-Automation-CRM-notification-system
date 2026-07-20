@@ -1,0 +1,340 @@
+{
+  "name": "Lead Automation System",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-capture",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://host.docker.internal:8000/leads/check/?phone={{ $json.body.phone }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token PASTE_YOUR_DJANGO_TOKEN_HERE"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "2",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json.exists }}",
+              "rightValue": "false",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8000/leads/create/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token PASTE_YOUR_DJANGO_TOKEN_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $('Webhook').item.json.body.name }}\",\n  \"phone\": \"{{ $('Webhook').item.json.body.phone }}\",\n  \"email\": \"{{ $('Webhook').item.json.body.email }}\",\n  \"message\": \"{{ $('Webhook').item.json.body.message }}\",\n  \"source\": \"{{ $('Webhook').item.json.body.source }}\"\n}",
+        "options": {}
+      },
+      "id": "4",
+      "name": "HTTP Request1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 120]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://host.docker.internal:8000/leads/{{ $json.id }}/update/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token PASTE_YOUR_DJANGO_TOKEN_HERE"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"last_contacted\": \"{{ $now }}\"\n}",
+        "options": {}
+      },
+      "id": "5",
+      "name": "HTTP Request2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 480]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "=Thank you for reaching out, {{ $('Webhook').item.json.body.name }}!",
+        "message": "=Hi {{ $('Webhook').item.json.body.name }},\n\nThank you for contacting us. We've received your message:\n\n\"{{ $('Webhook').item.json.body.message }}\"\n\nOur team will review your request and get back to you within 24 hours.\n\nBest regards,\n[Business Name] Team",
+        "options": {}
+      },
+      "id": "6",
+      "name": "Send a message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [880, 120]
+    },
+    {
+      "parameters": {
+        "sendTo": "sales@business.com",
+        "subject": "=New Lead Received: {{ $('Webhook').item.json.body.name }}",
+        "message": "=A new lead has come in through the contact form.\n\nName: {{ $('Webhook').item.json.body.name }}\nPhone: {{ $('Webhook').item.json.body.phone }}\nEmail: {{ $('Webhook').item.json.body.email }}\nSource: {{ $('Webhook').item.json.body.source }}\nMessage: {{ $('Webhook').item.json.body.message }}\n\nPlease follow up with this lead as soon as possible.\n\nMark as Contacted: http://host.docker.internal:8000/leads/{{ $json.id }}/mark-contacted/\n\n- Automated Lead System",
+        "options": {}
+      },
+      "id": "7",
+      "name": "Send a message1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [880, 340]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "id": "8",
+      "name": "Merge1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1100, 230]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\"\n}",
+        "options": {}
+      },
+      "id": "9",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 230]
+    },
+    {
+      "parameters": {
+        "amount": 24,
+        "unit": "hours"
+      },
+      "id": "10",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [220, 620]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://host.docker.internal:8000/leads/check/?phone={{ $('Webhook').item.json.body.phone }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token PASTE_YOUR_DJANGO_TOKEN_HERE"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "11",
+      "name": "HTTP Request3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 620]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond2",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "contacted",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "12",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 620]
+    },
+    {
+      "parameters": {
+        "sendTo": "sales@business.com",
+        "subject": "=Reminder: Lead Not Yet Contacted - {{ $json.name }}",
+        "message": "=This is a follow-up reminder.\n\nThe following lead has not been marked as contacted in the last 24 hours:\n\nName: {{ $json.name }}\nPhone: {{ $json.phone }}\nEmail: {{ $json.email }}\nMessage: {{ $json.message }}\nReceived: {{ $json.created_at }}\n\nPlease reach out as soon as possible to avoid losing this lead.\n\nMark as Contacted: http://host.docker.internal:8000/leads/{{ $json.id }}/mark-contacted/\n\n- Automated Lead System",
+        "options": {}
+      },
+      "id": "13",
+      "name": "Send a message2",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [880, 600]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "HTTP Request", "type": "main", "index": 0 },
+          { "node": "Wait", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          { "node": "If", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          { "node": "HTTP Request1", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "HTTP Request2", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          { "node": "Send a message", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          { "node": "Send a message1", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          { "node": "Merge1", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          { "node": "Merge1", "type": "main", "index": 1 }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          { "node": "Respond to Webhook", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          { "node": "HTTP Request3", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          { "node": "If1", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          { "node": "Send a message2", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
